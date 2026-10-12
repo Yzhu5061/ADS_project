@@ -3,6 +3,10 @@ import numpy as np
 
 cap = cv2.VideoCapture(1)     #捕捉摄像头
 
+out_write = False
+out = None
+
+
 try:
     while True:
         ret, frame = cap.read()    #读取帧
@@ -35,14 +39,35 @@ try:
                 print(f"\r质心坐标：({cx}, {cy}),面积：{max_area}",end = '',flush = True)   #打印中心和面积
                 cv2.circle(frame,(cx,cy),5,(0,0,255),-1)  #画出质心
         else:
-            print("\r","no contours",end='',flush=True)                      #没捕捉到就提醒
+            print("\r","no contours",end='',flush=True)               #没捕捉到就提醒
+
+
+        if out_write:
+            out.write(frame)
+
+        Key = cv2.waitKey(1)
+        if Key == ord('q'):
+            if out is not None:
+                out.release()
+            break
+        if Key == ord('s'):
+            if not out_write:
+                out_write = True
+                fourcc = cv2.VideoWriter_fourcc(*'DIVX')
+                out = cv2.VideoWriter('output.avi',fourcc,20.0, (640,480),True)
+            else:
+                out_write = False
+                out.release()
+                out = None
+
+
 
         cv2.imshow("res", res)         #复合后的图像
         cv2.imshow("mask", mask)       #掩膜
         cv2.imshow("frame", frame)     #原图像
 
-        if cv2.waitKey(1) == ord('q'):
-            break
+
+
 finally:
     cap.release()
     cv2.destroyAllWindows()
