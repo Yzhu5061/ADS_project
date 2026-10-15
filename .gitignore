@@ -1,0 +1,25 @@
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# ---------- IDE ----------
+.idea/
+.vscode/
+*.swp
+
+# ---------- 运行输出（本地生成，不进版本库）----------
+capture/
+!capture/.gitkeep
+output/
+
+# ---------- 备份 / 临时 ----------
+*.bak
+*~
+
+# ---------- 系统 ----------
+Thumbs.db
+desktop.ini
