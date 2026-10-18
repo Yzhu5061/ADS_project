@@ -24,9 +24,13 @@
 | 单目重投影误差 | 左 0.475 px / 右 0.452 px |
 | 基线 ‖T‖ | 118.243 mm（物理 120 mm，误差 1.46%） |
 | 两镜头转角 | 0.682° |
-| 极线校正后 y 偏差 | 平均 0.765 px，最大 2.007 px |
+| 极线校正后 y 偏差 | 平均 0.658 px，最大 2.165 px（18 张全统计） |
 
 标定参数存于 [`src/calib_result.npz`](src/calib_result.npz)。
+
+极线校正后，左右视图里同一个三维点应当落在大致相同的行上（红线是校验参考）：
+
+![极线校正检查](docs/demo/rectified_check.png)
 
 ![标定图拼贴](docs/demo/contact_sheet.png)
 
@@ -108,6 +112,12 @@ numpy
 ```
 
 需要连接 USB 双目相机（Windows 下使用 MSMF 后端，索引见脚本内注释）。
+
+脚本里的路径都是相对的，请**在仓库根目录运行**：
+
+```
+python src/Stage2_stereo_vision.py
+```
 
 
 

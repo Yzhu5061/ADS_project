@@ -2,6 +2,7 @@ import cv2
 import glob
 import numpy as np
 
+y_count = 0
 criteria = (cv2.TERM_CRITERIA_COUNT + cv2.TERM_CRITERIA_EPS, 30, 0.001)
 
 objp = np.zeros((8*11,3),np.float32)             #往空的数组里乘啥啊？？？？
@@ -11,6 +12,8 @@ objpoints_left = []
 objpoints_right = []
 imgpoints_left = []
 imgpoints_right = []
+
+y_np = []
 
 #单眼尺寸只量一次，循环内外都用它
 images = sorted(glob.glob("calib_raw/*.bmp"))
@@ -67,7 +70,7 @@ ret_right_cali,mtx_right,dist_right,rvecs_right,tvecs_right = cv2.calibrateCamer
     objpoints_right,imgpoints_right,
     (W,H),None,None)
 
-# print(f"RMS:\nleft:{ret_left_cali},\nright:{ret_right_cali}")
+
 # print(f"mtx:\nleft:{mtx_left},\nright:{mtx_right}")
 
 ret_F,Mtx_L,Dist_L,Mtx_R,Dist_R,R,T,E,F = cv2.stereoCalibrate(
@@ -93,13 +96,46 @@ R1,R2,P1,P2,Q,ROI1,ROI2 = cv2.stereoRectify(#这样写不容易出错（踩坑�
 mapL1,mapL2 = cv2.initUndistortRectifyMap(Mtx_L,Dist_L,R1,P1,(W,H),cv2.CV_32FC1)
 mapR1,mapR2 = cv2.initUndistortRectifyMap(Mtx_R,Dist_R,R2,P2,(W,H),cv2.CV_32FC1)
 
+for j in images:
+    j = cv2.imread(j, cv2.IMREAD_GRAYSCALE)
+    l = j[:, :j.shape[1] // 2]
+    r = j[:, j.shape[1] // 2:]
+
+    _L = cv2.remap(l,mapL1,mapL2,cv2.INTER_LINEAR)
+    _R = cv2.remap(r,mapR1,mapR2,cv2.INTER_LINEAR)
+
+    LEFT_ , corners_L = cv2.findChessboardCorners(_L,(11,8),None)
+    RIGHT_ , corners_R = cv2.findChessboardCorners(_R,(11,8),None)
+
+    if not (LEFT_ and RIGHT_):
+        continue
+
+    y_count += 1
+    corners_L2 = cv2.cornerSubPix(_L,corners_L,(11,11),(-1,-1),criteria)
+    corners_R2 = cv2.cornerSubPix(_R,corners_R,(11,11),(-1, -1),criteria)
+
+    y = np.abs(corners_R2[:, 1] - corners_L2[:, 1])
+    y_np.append(y.copy())
+if y_np:
+    Y = np.concatenate(y_np)
+
+    print("---------------------------------------------------")
+    print(f"RMS:\nleft:{ret_left_cali},\nright:{ret_right_cali}")
+    print(f"θ:{np.degrees(np.arccos(np.clip((np.trace(R)-1) / 2,-1,1)))}")
+    print(f"f:{P1[0,0]}")
+    print(f"y的平均值：{Y.mean()}")
+    print(f"y的最大值:{Y.max()}")
+    print(f"张数：{y_count}")
+else:
+    print("y_np is Falsy")
+
+#矫正
 left0 = img0[:,:W]
 right0 = img0[:, W:]
 
 LEFT = cv2.remap(left0,mapL1,mapL2,cv2.INTER_LINEAR)
 RIGHT = cv2.remap(right0,mapR1,mapR2,cv2.INTER_LINEAR)
 
-#缩小尺寸
 LEFT_small = cv2.resize(LEFT,None,fx=0.4,fy=0.4)
 RIGHT_small = cv2.resize(RIGHT,None,fx=0.4,fy=0.4)
 
@@ -108,5 +144,6 @@ for i in range(0, LEFT_small.shape[0], 40):        #每 40 像素画一条红线
     cv2.line(RIGHT_small,(0,i),(RIGHT_small.shape[1],i),(0,0,255),1)
 
 cv2.imshow("rectified",np.hstack([LEFT_small,RIGHT_small]))
+# cv2.imwrite("rectified_check.png", np.hstack([LEFT_small, RIGHT_small]))
 cv2.waitKey(0)
 cv2.destroyAllWindows()
